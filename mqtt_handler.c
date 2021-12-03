@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <MQTTClient.h>
 #include "mqtt_handler.h"
-
+#include <pthread.h>
 
 
 #define ADDRESS     "tcp://localhost:1883"
@@ -25,6 +25,8 @@ int rc;
 char incoming_message[50] = "";
 char incoming_flag = 0;
 
+pthread_mutex_t incoming_mutex;
+
 //forward declaration
 void publish_cordinate(coord_t);
 int subscribe_callback(void* , char*, int, MQTTClient_message*);
@@ -43,7 +45,7 @@ bool coord_equal(coord_t c1, coord_t c2){
 }
 
 bool coord_is_valid(coord_t c){
-    
+    return True;
     if( c.x > 1 && c.x < 1 &&
         c.y > 1 && c.y < 1 &&
         c.z > 1 && c.z < 1 &&
@@ -58,6 +60,8 @@ bool coord_is_valid(coord_t c){
  * @brief Initialize the handler
  */
 void mqtt_handler_init(){
+
+    pthread_mutex_init(&incoming_mutex, NULL);
 
     MQTTClient_create(&client, ADDRESS, CLIENTID,
         MQTTCLIENT_PERSISTENCE_NONE, NULL);
@@ -104,11 +108,11 @@ void mqtt_handler_close(){
 void mqtt_periodic_callback(coord_t* coord){
 
     static coord_t last_coord;
-    static time_t last_time;
+    static time_t last_time = 0;
     time_t now = clock();
 
     //check if min delta t has passed
-    if ( (int)(now-last_time)/(CLOCKS_PER_SEC*1000) >= MIN_DELTA_T){
+    if ( ((double)(now - last_time) / CLOCKS_PER_SEC) >= 0.1){
     
         last_time = now;
         
@@ -120,6 +124,8 @@ void mqtt_periodic_callback(coord_t* coord){
 
     //check subscription
     //take mutex
+    pthread_mutex_lock(&incoming_mutex);
+
     if (incoming_flag){
         incoming_flag = 0;
 
@@ -133,12 +139,15 @@ void mqtt_periodic_callback(coord_t* coord){
             *coord = aux;   
         }
     }
+
+    pthread_mutex_unlock(&incoming_mutex);
     //release mutex
 
     
 }
 
 void publish_cordinate(coord_t c){
+    printf("publish");
     char message[50];
     sprintf(&message,
             "%+.1f, %+.1f, %+.1f, %+.1f, %+.1f, %c",
@@ -155,13 +164,19 @@ void publish_cordinate(coord_t c){
 
 int subscribe_callback(void* context, char* topicName, int topicLen, MQTTClient_message* m)
 {
+    printf("SUBSCRIBE");
     if ( m->payloadlen >= sizeof(incoming_message) )
         return 1; //reject if message is too big
     
     //take mutex
+    pthread_mutex_lock(&incoming_mutex);
+
 	strncpy(incoming_message, m->payload, m->payloadlen);
     incoming_message[m->payloadlen] = '\0'; //terminate string
     incoming_flag = 1;
+    printf("\n%s\n", incoming_message);
+
+    pthread_mutex_unlock(&incoming_mutex);
     //release mutex
 
 	MQTTClient_free(topicName);

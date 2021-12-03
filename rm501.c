@@ -1727,7 +1727,7 @@ int main(int argc, char** argv) {
           rad2deg(r)
         };
 
-        //mqtt_periodic_callback(&coord);
+        mqtt_periodic_callback(&coord);
 
         //convert coord to bot        
         bot_t bot_aux;
@@ -1736,17 +1736,21 @@ int main(int argc, char** argv) {
         bot_aux.t[13]=coord.y;
         bot_aux.t[14]=coord.z;
         
-        kins_inv(&bot_aux);
-        kins_fwd(&bot_aux);
+        //kins_inv(&bot_aux);
+        //kins_fwd(&bot_aux);
+        pmMatRpyConvert(&bot_aux.t, &y, &p, &r);
+        p = rad2deg(p);
+        r = rad2deg(r);
+
         // pitch
-        rotate_m_axyz(&bot_aux.t, coord.pitch, sin(deg2rad(bot_aux.j[0].pos)), 0, cos(deg2rad(bot_aux.j[0].pos)));
+        rotate_m_axyz(&bot_aux.t, coord.pitch-p, sin(deg2rad(bot_aux.j[0].pos)), 0, cos(deg2rad(bot_aux.j[0].pos)));
         // roll
-        rotate_m_axyz(&bot_aux.t, coord.roll, 0, 1, 0);
-        /*
-        */
+        rotate_m_axyz(&bot_aux.t, coord.roll-r, 0, 1, 0);
+        
         kins_inv(&bot_aux);
         kins_fwd(&bot_aux);
         bot_inv = bot_aux;
+        
 
 
         ///////////

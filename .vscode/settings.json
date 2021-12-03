@@ -5,6 +5,7 @@
         "ratio": "c",
         "condition_variable": "c",
         "mqtt_handler.h": "c",
-        "mqttclient.h": "c"
+        "mqttclient.h": "c",
+        "pthread.h": "c"
     }
 }
