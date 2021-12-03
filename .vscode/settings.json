@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "random": "c",
+        "*.tcc": "c",
+        "ratio": "c",
+        "condition_variable": "c",
+        "mqtt_handler.h": "c",
+        "mqttclient.h": "c"
+    }
+}

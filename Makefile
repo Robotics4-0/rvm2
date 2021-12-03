@@ -28,15 +28,26 @@ TRAJGEN_LDLIBS :=
 
 CFLAGS  += $(SDL_CFLAGS) $(CURSES_CLFAGS) $(HAL_CFLAGS) $(ZMQ_CFLAGS) $(MOSQ_CFLAGS) $(TRAJGEN_CFLAGS) -O2 -g -Wall
 LDLIBS  += $(SDL_LDLIBS) $(CURSES_LDLIBS) $(HAL_LDLIBS) $(ZMQ_LDLIBS) $(MOSQ_LDLIBS) $(TRAJGEN_LDLIBS) -lm
-LDFLAGS += -Wl,--as-needed
+LDFLAGS += -Wl,--as-needed -lpaho-mqtt3c 
+
+SUBDIRS = paho-mqtt-c/src
+
+
 
 all: rm501
+
 
 %.o: %.c
 	$(CC) -o $@ -c $(CFLAGS) $+
 
-rm501: rm501.o trajgen.o
+
+rm501: rm501.o trajgen.o mqtt_handler.o
 	$(CC) -o $@ $+ $(LDFLAGS) $(LDLIBS)
+
+#-include Makefile.deps
+#Makefile.deps:
+#	$(CC) $(CFLAGS) -MM *.c > Makefile.deps
+#	$(CC) $(CFLAGS) -MM *.c $(SUBDIRS)/*.c > Makefile.deps
 
 rm501.1: rm501
 	help2man -N ./$+ > $@
@@ -56,7 +67,7 @@ uninstall:
 	rm $(INSTALL_PREFIX)$(PREFIX)/share/applications/rm501.desktop
 
 clean:
-	rm -f *.o rm501
+	rm -f *.o rm501 Makefile.deps
 
 pull:
 	git pull origin master --rebase

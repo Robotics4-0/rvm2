@@ -24,22 +24,22 @@
 // sudo apt-get -y install libsdl2-dev libsdl2-ttf-dev
 // for joystick access: sudo usermod -aG input $USER
 
-//#define HAVE_SDL           // working
+#define HAVE_SDL           // working
 #ifdef HAVE_SDL
   #define HAVE_AUDIO       // working, requires HAVE_SDL
   #define HAVE_JOYSTICK    // working, requires HAVE_SDL
   #define HAVE_PNG         // working, requires HAVE_SDL
   #define ENABLE_FPS_LIMIT // working, requires HAVE_SDL
   #ifdef ENABLE_FPS_LIMIT
-    #define DEFAULT_FPS 50
+    #define DEFAULT_FPS 30
   #endif
 #endif
 
 #define HAVE_SPACENAV        // working
 //#define HAVE_HAL             // partially working
-//#define HAVE_NCURSES         // unfinished
+#define HAVE_NCURSES         // unfinished
 //#define HAVE_SERIAL          // unfinished
-//#define HAVE_SOCKET          // unfinished
+#define HAVE_SOCKET          // unfinished
 //#define HAVE_MOSQUITTO       // unfinished
 //#define HAVE_ZMQ             // unfinished
 //#define HAVE_TRAJGEN         // unfinished
@@ -56,6 +56,8 @@
 #include <string.h> // memcpy()
 #include <signal.h> // sigaction(), sigsuspend(), sig*()
 #include <math.h>
+
+#include "mqtt_handler.h"
 
 #ifdef HAVE_ZMQ
 #include <zmq.h>
@@ -250,6 +252,7 @@ typedef struct {
 #ifdef PROJ3
     int proj3counter;
 #endif
+    bool claw;
 
 } bot_t;
 
@@ -497,7 +500,7 @@ void kins_inv(bot_t* bot) {
         }
 
         snprintf(bot->msg, sizeof(bot->msg), "kin_inv(%d): %s %s %s %s %s", bot->err, msg[0], msg[1], msg[2], msg[3], msg[4]);
-    }
+    } //end kins_inv()
 
 #ifdef HAVE_SDL
 void cross(float th, float l) {
@@ -887,6 +890,8 @@ void cross(float th, float l) {
         text(15, 10+12*TTF_FontHeight(sdl_font), sdl_font, "b: %8.2f", rad2deg(p));
         text(15, 10+13*TTF_FontHeight(sdl_font), sdl_font, "c: %8.2f", rad2deg(y));
 
+        text(15, 10+15*TTF_FontHeight(sdl_font), sdl_font, "%s", bot->claw?"Open":"Closed");
+
         text(width - 370,10, sdl_font, "TOOL"); text_matrix(width - 320, 10, bot->t);
 
         if (strlen(bot->msg)) {
@@ -1062,7 +1067,7 @@ void cross(float th, float l) {
     }
 
 #endif
-
+//!!
     void update_model(bot_t *bot_fwd, bot_t* bot_inv, int do_kins_fwd, int do_kins_inv) {
         if (do_kins_inv) {
             kins_inv(bot_inv);
@@ -1076,6 +1081,7 @@ void cross(float th, float l) {
             kins_fwd(bot_fwd);
             memcpy(bot_inv, bot_fwd, sizeof(bot_t));
         }
+        bot_inv->claw=bot_fwd->claw;
     }
 
 #ifdef HAVE_MOSQUITTO
@@ -1208,6 +1214,36 @@ void handle_signal(int signal) {
   }
 }
 
+void bot_init(bot_t* bot){
+    bot->d1 = 2.3;
+    bot->d5 = 1.3;
+    bot->a2 = 2.2;
+    bot->a3 = 1.6;
+    
+    bot->j[0].min = -120;
+    bot->j[0].max = 180;
+    
+    bot->j[1].min = -30;
+    bot->j[1].max = 100;
+    
+    bot->j[2].min = -100;
+    bot->j[2].max = 0;
+    
+    bot->j[3].min = -15;
+    bot->j[3].max = 195;
+    
+    bot->j[4].min = -360;
+    bot->j[4].max = 360;
+    
+    bot->j[0].pos = 0;
+    bot->j[1].pos = 90;
+    bot->j[2].pos = -90;
+    bot->j[3].pos = 0;
+    bot->j[4].pos = 0;
+
+    bot->claw = true;
+}
+
 int main(int argc, char** argv) {
   struct sigaction sa;
   sa.sa_handler = &handle_signal;
@@ -1238,7 +1274,7 @@ int main(int argc, char** argv) {
         bot_t bot_fwd, bot_inv;
 
 #ifdef HAVE_SDL
-        int do_sdl = 0;
+        int do_sdl = 1;
 
         SDL_Event ev;
         const Uint8 *keys = SDL_GetKeyboardState(0);
@@ -1436,7 +1472,7 @@ int main(int argc, char** argv) {
 	  werase(messagebar);
 	  wrefresh(messagebar);
 	  
-	  wprintw(menubar, "Mitsubishi RM-501 Movemaster II Robot Simulator");
+	  wprintw(menubar, "Mitsubishi Movemaster VM-M2 Digital Twin");
 	  wprintw(messagebar, "Status: DISCONNECTED, OFFLINE");
 	}
 #endif
@@ -1586,7 +1622,7 @@ int main(int argc, char** argv) {
 	  height = sdl_displaymode.h;
 	}*/
       
-      sdl_window = SDL_CreateWindow("Mitsubishi RM-501 Movemaster II Robot Simulator",
+      sdl_window = SDL_CreateWindow("Mitsubishi Movemaster VM-M2 Digital Twin",
 				    SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 				    width, height, sdl_flags);
       
@@ -1639,31 +1675,7 @@ int main(int argc, char** argv) {
 #endif
     }
 
-    bot_fwd.d1 = 2.3;
-    bot_fwd.d5 = 1.3;
-    bot_fwd.a2 = 2.2;
-    bot_fwd.a3 = 1.6;
-    
-    bot_fwd.j[0].min = -120;
-    bot_fwd.j[0].max = 180;
-    
-    bot_fwd.j[1].min = -30;
-    bot_fwd.j[1].max = 100;
-    
-    bot_fwd.j[2].min = -100;
-    bot_fwd.j[2].max = 0;
-    
-    bot_fwd.j[3].min = -15;
-    bot_fwd.j[3].max = 195;
-    
-    bot_fwd.j[4].min = -360;
-    bot_fwd.j[4].max = 360;
-    
-    bot_fwd.j[0].pos = 0;
-    bot_fwd.j[1].pos = 90;
-    bot_fwd.j[2].pos = -90;
-    bot_fwd.j[3].pos = 0;
-    bot_fwd.j[4].pos = 0;
+    bot_init(&bot_fwd);
     
     memcpy(&bot_inv, &bot_fwd, sizeof(bot_t));
     kins_inv(&bot_inv);
@@ -1695,10 +1707,50 @@ int main(int argc, char** argv) {
     tg_line(1.6, 3.2, 0.0);
     while (!tg_tg.is_done) tg_echk(trajgen_tick());
 #endif
-    
+
+    // 
+    mqtt_handler_init();
+
+
+    //Infinite loop
     while (!done) {
 
-        static double old_pos[5];
+
+        //convert bot to coord
+        double r, p, y;
+        pmMatRpyConvert(&bot_inv.t, &y, &p, &r);
+        coord_t coord = {
+          bot_inv.t[12],
+          bot_inv.t[13],
+          bot_inv.t[14],
+          rad2deg(p),
+          rad2deg(r)
+        };
+
+        //mqtt_periodic_callback(&coord);
+
+        //convert coord to bot        
+        bot_t bot_aux;
+        bot_init(&bot_aux);
+        bot_aux.t[12]=coord.x;
+        bot_aux.t[13]=coord.y;
+        bot_aux.t[14]=coord.z;
+        
+        kins_inv(&bot_aux);
+        kins_fwd(&bot_aux);
+        // pitch
+        rotate_m_axyz(&bot_aux.t, coord.pitch, sin(deg2rad(bot_aux.j[0].pos)), 0, cos(deg2rad(bot_aux.j[0].pos)));
+        // roll
+        rotate_m_axyz(&bot_aux.t, coord.roll, 0, 1, 0);
+        /*
+        */
+        kins_inv(&bot_aux);
+        kins_fwd(&bot_aux);
+        bot_inv = bot_aux;
+
+
+        ///////////
+        static double old_pos[5]; //joints
         
         for (int i = 0; i < 5; i++) {
             old_pos[i] = bot_fwd.j[i].pos;
@@ -1735,6 +1787,9 @@ int main(int argc, char** argv) {
     if (keys[SDL_SCANCODE_D]) { jog_joint(&bot_fwd, 2, -cnt); }
     if (keys[SDL_SCANCODE_F]) { jog_joint(&bot_fwd, 3, -cnt); }
     if (keys[SDL_SCANCODE_G]) { jog_joint(&bot_fwd, 4, -cnt); }
+
+    if (keys[SDL_SCANCODE_O]) { bot_fwd.claw = true; }
+    if (keys[SDL_SCANCODE_L]) { bot_fwd.claw = false; }
 
     if (!keys[SDL_SCANCODE_LSHIFT] && !keys[SDL_SCANCODE_RSHIFT]) {
       if (keys[SDL_SCANCODE_LEFT])     { move_tool(&bot_inv, 0, -d); }
