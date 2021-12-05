@@ -57,6 +57,7 @@
 #include <signal.h> // sigaction(), sigsuspend(), sig*()
 #include <math.h>
 
+#include "stdbool.h"
 #include "mqtt_handler.h"
 
 #ifdef HAVE_ZMQ
@@ -1716,6 +1717,7 @@ int main(int argc, char** argv) {
     while (!done) {
 
 
+
         //convert bot to coord
         double r, p, y;
         pmMatRpyConvert(&bot_inv.t, &y, &p, &r);
@@ -1724,33 +1726,36 @@ int main(int argc, char** argv) {
           bot_inv.t[13],
           bot_inv.t[14],
           rad2deg(p),
-          rad2deg(r)
+          rad2deg(r),//bot_inv.j[4].pos
+          bot_inv.claw
         };
 
-        mqtt_periodic_callback(&coord);
+        if ( mqtt_periodic_callback(&coord) ) 
+        { //an update arrived from mqtt
+          
+          //convert coord to bot        
+          bot_t bot_aux = bot_inv;
+          bot_aux.t[12]=coord.x;
+          bot_aux.t[13]=coord.y;
+          bot_aux.t[14]=coord.z;
+          
+          pmMatRpyConvert(&bot_aux.t, &y, &p, &r);
+          p = rad2deg(p);
+          r = rad2deg(r);
 
-        //convert coord to bot        
-        bot_t bot_aux;
-        bot_init(&bot_aux);
-        bot_aux.t[12]=coord.x;
-        bot_aux.t[13]=coord.y;
-        bot_aux.t[14]=coord.z;
-        
-        //kins_inv(&bot_aux);
-        //kins_fwd(&bot_aux);
-        pmMatRpyConvert(&bot_aux.t, &y, &p, &r);
-        p = rad2deg(p);
-        r = rad2deg(r);
+          // pitch
+          rotate_m_axyz(&bot_aux.t, coord.pitch-p, sin(deg2rad(bot_aux.j[0].pos)), 0, cos(deg2rad(bot_aux.j[0].pos)));
+          // roll
+          rotate_m_axyz(&bot_aux.t, coord.roll-r, 0, 1, 0);
+          
+          //kins_inv(&bot_aux);
+          //bot_aux.j[4].pos=r; //TODO: check if roll is global
+          //kins_fwd(&bot_aux);
 
-        // pitch
-        rotate_m_axyz(&bot_aux.t, coord.pitch-p, sin(deg2rad(bot_aux.j[0].pos)), 0, cos(deg2rad(bot_aux.j[0].pos)));
-        // roll
-        rotate_m_axyz(&bot_aux.t, coord.roll-r, 0, 1, 0);
+          bot_inv = bot_aux;
+          update_model(&bot_fwd, &bot_inv, 1, 1);
         
-        kins_inv(&bot_aux);
-        kins_fwd(&bot_aux);
-        bot_inv = bot_aux;
-        
+        }
 
 
         ///////////
@@ -2171,6 +2176,8 @@ fail0:
     mosquitto_lib_cleanup();
   }
 #endif
+  //close mqtt handler
+  mqtt_handler_close();
 
   return EXIT_SUCCESS;
 }
