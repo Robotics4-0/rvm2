@@ -1215,6 +1215,48 @@ void handle_signal(int signal) {
   }
 }
 
+coord_t bot2coord(bot_t *bot){
+  //convert bot to coord
+  double r=0, p=0, y=0;
+  pmMatRpyConvert(bot->t, &y, &r, &p);
+  coord_t coord = {
+    bot->t[12],
+    bot->t[13],
+    bot->t[14],
+    rad2deg(p),
+    rad2deg(r),//bot_inv.j[4].pos
+    bot->claw
+  };
+  return coord;
+}
+
+void coord2bot(bot_t *bot, coord_t coord)
+{ 
+  //convert coord to bot        
+  bot_t bot_aux = *bot;
+  bot_aux.t[12]=coord.x;
+  bot_aux.t[13]=coord.y;
+  bot_aux.t[14]=coord.z;
+
+  double r=0, p=0, y=0;
+  pmMatRpyConvert(&bot_aux.t, &y, &r, &p);
+  p = rad2deg(p);
+  r = rad2deg(r);
+
+  // pitch
+  rotate_m_axyz(&bot_aux.t, coord.pitch-p, sin(deg2rad(bot_aux.j[0].pos)), 0, cos(deg2rad(bot_aux.j[0].pos)));
+  // roll
+  rotate_m_axyz(&bot_aux.t, coord.roll-r, 0, 1, 0);
+  
+  //kins_inv(&bot_aux);
+  //bot_aux.j[4].pos=r; //TODO: check if roll is global
+  //kins_fwd(&bot_aux);
+
+  //return results
+  *bot = bot_aux;
+
+}
+
 void bot_init(bot_t* bot){
     bot->d1 = 2.3;
     bot->d5 = 1.3;
@@ -1473,7 +1515,7 @@ int main(int argc, char** argv) {
 	  werase(messagebar);
 	  wrefresh(messagebar);
 	  
-	  wprintw(menubar, "Mitsubishi Movemaster VM-M2 Digital Twin");
+	  wprintw(menubar, "Mitsubishi Movemaster VM-M2 Simulator");
 	  wprintw(messagebar, "Status: DISCONNECTED, OFFLINE");
 	}
 #endif
@@ -1623,7 +1665,7 @@ int main(int argc, char** argv) {
 	  height = sdl_displaymode.h;
 	}*/
       
-      sdl_window = SDL_CreateWindow("Mitsubishi Movemaster VM-M2 Digital Twin",
+      sdl_window = SDL_CreateWindow("Mitsubishi Movemaster VM-M2 Simulator",
 				    SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 				    width, height, sdl_flags);
       
@@ -1716,45 +1758,28 @@ int main(int argc, char** argv) {
     //Infinite loop
     while (!done) {
 
-
-
-        //convert bot to coord
-        double r, p, y;
-        pmMatRpyConvert(&bot_inv.t, &y, &p, &r);
-        coord_t coord = {
-          bot_inv.t[12],
-          bot_inv.t[13],
-          bot_inv.t[14],
-          rad2deg(p),
-          rad2deg(r),//bot_inv.j[4].pos
-          bot_inv.claw
-        };
+        coord_t coord = bot2coord(&bot_inv);
 
         if ( mqtt_periodic_callback(&coord) ) 
         { //an update arrived from mqtt
-          
-          //convert coord to bot        
+
           bot_t bot_aux = bot_inv;
-          bot_aux.t[12]=coord.x;
-          bot_aux.t[13]=coord.y;
-          bot_aux.t[14]=coord.z;
-          
-          pmMatRpyConvert(&bot_aux.t, &y, &p, &r);
-          p = rad2deg(p);
-          r = rad2deg(r);
 
-          // pitch
-          rotate_m_axyz(&bot_aux.t, coord.pitch-p, sin(deg2rad(bot_aux.j[0].pos)), 0, cos(deg2rad(bot_aux.j[0].pos)));
-          // roll
-          rotate_m_axyz(&bot_aux.t, coord.roll-r, 0, 1, 0);
+          int try = 5;
+          do{
+            //try to convert multiple times until result is good
+            coord2bot(&bot_aux, coord);
+            if(try < 3)
+              printf("\nTRY: %d", try);
+          }
+          while(  !coord_equal(coord, bot2coord(&bot_aux), EPSILON/2) 
+                  && --try > 0 );
           
-          //kins_inv(&bot_aux);
-          //bot_aux.j[4].pos=r; //TODO: check if roll is global
-          //kins_fwd(&bot_aux);
-
+          
+          bot_fwd = bot_aux;
           bot_inv = bot_aux;
           update_model(&bot_fwd, &bot_inv, 1, 1);
-        
+
         }
 
 

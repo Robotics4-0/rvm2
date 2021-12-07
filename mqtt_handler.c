@@ -10,14 +10,6 @@
 #include "mqtt_handler.h"
 
 
-#define ADDRESS     "tcp://localhost:1883"
-#define TOPIC       "rvm2/coordinate"
-#define QOS         0
-#define TIMEOUT     10000L
-
-#define MIN_DELTA_T 0.1 //seconds
-#define EPSILON 0.1   //min error
-
 MQTTClient client;
 MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 MQTTClient_message pubmsg = MQTTClient_message_initializer;

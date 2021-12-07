@@ -44,11 +44,6 @@ all: rm501
 rm501: rm501.o trajgen.o mqtt_handler.o
 	$(CC) -o $@ $+ $(LDFLAGS) $(LDLIBS)
 
-#-include Makefile.deps
-#Makefile.deps:
-#	$(CC) $(CFLAGS) -MM *.c > Makefile.deps
-#	$(CC) $(CFLAGS) -MM *.c $(SUBDIRS)/*.c > Makefile.deps
-
 rm501.1: rm501
 	help2man -N ./$+ > $@
 
@@ -67,7 +62,7 @@ uninstall:
 	rm $(INSTALL_PREFIX)$(PREFIX)/share/applications/rm501.desktop
 
 clean:
-	rm -f *.o rm501 Makefile.deps
+	rm -f *.o rm501
 
 pull:
 	git pull origin master --rebase
