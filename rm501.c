@@ -1258,10 +1258,14 @@ void coord2bot(bot_t *bot, coord_t coord)
 }
 
 void bot_init(bot_t* bot){
-    bot->d1 = 2.3;
-    bot->d5 = 1.3;
-    bot->a2 = 2.2;
-    bot->a3 = 1.6;
+    bot->d1 = 2.3; //link1 height
+    bot->d5 = 1.3; //offset
+    bot->a2 = 2.2; //
+    bot->a3 = 1.6; //
+    //bot->d1 = 4.0;
+    //bot->d5 = 3.2;
+    //bot->a2 = 2.5;
+    //bot->a3 = 2.0;
     
     bot->j[0].min = -120;
     bot->j[0].max = 180;
@@ -1765,20 +1769,23 @@ int main(int argc, char** argv) {
 
           bot_t bot_aux = bot_inv;
 
-          int try = 5;
+          int try = 100;
           do{
             //try to convert multiple times until result is good
             coord2bot(&bot_aux, coord);
-            if(try < 3)
+            
+            bot_fwd = bot_aux;
+            bot_inv = bot_aux;
+            update_model(&bot_fwd, &bot_inv, 1, 1);
+            bot_aux = bot_inv;
+
+            if(try < 100)
               printf("\nTRY: %d", try);
           }
-          while(  !coord_equal(coord, bot2coord(&bot_aux), EPSILON/2) 
+          while(  !coord_equal(coord, bot2coord(&bot_aux), EPSILON/10) 
                   && --try > 0 );
-          
-          
-          bot_fwd = bot_aux;
-          bot_inv = bot_aux;
-          update_model(&bot_fwd, &bot_inv, 1, 1);
+          if(try == 0) printf("\nError!");
+          //TODO: enter error state ????
 
         }
 
