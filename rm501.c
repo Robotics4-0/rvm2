@@ -1778,7 +1778,7 @@ int main(int argc, char** argv) {
           bot_t bot_aux;// = bot_inv;
           bot_init(&bot_aux);
 
-          int try = 1000;
+          int try = 100;
           do{
             //try to convert multiple times until result is good
             coord2bot(&bot_aux, coord);
