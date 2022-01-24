@@ -3,7 +3,7 @@
 
 
 #define ADDRESS     "tcp://localhost:1883"
-#define TOPIC       "rvm2/coordinate"
+#define TOPIC       "Robot/Coordinates"
 #define QOS         0
 #define TIMEOUT     10000L
 
