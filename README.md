@@ -37,11 +37,19 @@ $ # required packages
 $ sudo apt -y install mesa-common-dev libsdl2-dev libsdl2-ttf-dev libsdl2-net-dev
 $ sudo usermod -aG input $USER            # for joystick access
 $ sudo apt -y install ttf-dejavu-core     # for DejaVuSansMono.ttf
+
+$ sudo apt-get install build-essential gcc make cmake cmake-gui cmake-curses-gui
+$ sudo apt-get install fakeroot fakeroot devscripts dh-make lsb-release
+$ mkdir /tmp/build.paho
+$ cd /tmp/build.paho
+$ cmake -GNinja -DPAHO_WITH_SSL=TRUE -DPAHO_BUILD_DOCUMENTATION=TRUE -DPAHO_BUILD_SAMPLES=TRUE ~/git/org.eclipse.paho.mqtt.c
+
 $ # optional packages
 $ sudo apt -y install libncurses-dev      # for console
 $ sudo apt -y install libpng-dev          # for screenshots
 $ sudo apt -y install libzmq5 libzmq3-dev # for ZeroMQ
 $ sudo apt -y install libmosquitto-dev    # for MQTT
+
 ```
 
 Compile and run:
