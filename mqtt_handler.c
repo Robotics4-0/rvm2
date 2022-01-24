@@ -158,7 +158,7 @@ int mqtt_periodic_callback(coord_t* coord){
         if ( coord_is_valid(aux) ){
             //only apply if movement is significant
             if (!coord_equal(last_coord, aux, EPSILON)){
-                printf("\nAPPLY");
+                //printf("\nAPPLY");
                 *coord = aux; //apply coordinates
                 last_coord = aux; //remember coordinates
                 ret_flag = 1; //notify update         
@@ -186,7 +186,7 @@ void publish_cordinate(coord_t c){
     pubmsg.payload = message;
     pubmsg.payloadlen = strlen(message);
     pubmsg.qos = QOS;
-    pubmsg.retained = 0;
+    pubmsg.retained = 1;
     MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token);
 
 }
@@ -203,7 +203,7 @@ int subscribe_callback(void* context, char* topicName, int topicLen, MQTTClient_
     incoming_message[m->payloadlen] = '\0'; //terminate string
     incoming_flag = 1;
 
-    printf("\nsubscribe:%s", incoming_message);
+    //printf("\nsubscribe:%s", incoming_message);
     pthread_mutex_unlock(&incoming_mutex);
     //release mutex
 

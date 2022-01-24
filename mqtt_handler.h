@@ -7,7 +7,7 @@
 #define QOS         0
 #define TIMEOUT     10000L
 
-#define MIN_DELTA_T 0.1 //seconds
+#define MIN_DELTA_T 0.5 //seconds
 #define EPSILON 0.1   //min error
 
 
