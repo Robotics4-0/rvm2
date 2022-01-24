@@ -41,9 +41,9 @@ bool coord_equal(coord_t c1, coord_t c2){
 bool coord_equal(coord_t c1, coord_t c2, float epsilon){
     if( fabs( c1.x-c2.x ) < epsilon &&
         fabs( c1.y-c2.y ) < epsilon &&
-        fabs( c1.z-c2.z ) < epsilon //&&
-        //fabs( c1.pitch-c2.pitch ) < epsilon &&
-        //fabs( c1.roll-c2.roll ) < epsilon &&
+        fabs( c1.z-c2.z ) < epsilon &&
+        fabs( c1.pitch-c2.pitch ) < epsilon &&
+        fabs( c1.roll-c2.roll ) < epsilon //&&
         //c1.claw==c2.claw
     )
         return true;

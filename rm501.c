@@ -1260,6 +1260,7 @@ void coord2bot(bot_t *bot, coord_t coord)
   //bot_aux.j[4].pos=r; //TODO: check if roll is global
   //kins_fwd(&bot_aux);
 
+  bot_aux.claw=coord.claw;
   //return results
   *bot = bot_aux;
 
