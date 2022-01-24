@@ -2,13 +2,14 @@
 #define _MQTT_HANDLER_H_
 
 
-#define ADDRESS     "tcp://localhost:1883"
+#define ADDRESS     "tcp://mitsubishi-rvm2:1883"
+//#define ADDRESS     "tcp://localhost:1883"
 #define TOPIC       "Robot/Coordinates"
-#define QOS         0
+#define QOS         1
 #define TIMEOUT     10000L
 
 #define MIN_DELTA_T 0.5 //seconds
-#define EPSILON 0.1   //min error
+#define EPSILON 1   //min error
 
 
 typedef struct {

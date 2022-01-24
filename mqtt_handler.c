@@ -41,10 +41,10 @@ bool coord_equal(coord_t c1, coord_t c2){
 bool coord_equal(coord_t c1, coord_t c2, float epsilon){
     if( fabs( c1.x-c2.x ) < epsilon &&
         fabs( c1.y-c2.y ) < epsilon &&
-        fabs( c1.z-c2.z ) < epsilon &&
-        fabs( c1.pitch-c2.pitch ) < epsilon &&
-        fabs( c1.roll-c2.roll ) < epsilon &&
-        c1.claw==c2.claw
+        fabs( c1.z-c2.z ) < epsilon //&&
+        //fabs( c1.pitch-c2.pitch ) < epsilon &&
+        //fabs( c1.roll-c2.roll ) < epsilon &&
+        //c1.claw==c2.claw
     )
         return true;
     return false;
@@ -54,9 +54,9 @@ bool coord_is_valid(coord_t c){
     return true; //TODO: update values
     if( c.x > 1 && c.x < 1 &&
         c.y > 1 && c.y < 1 &&
-        c.z > 1 && c.z < 1 &&
-        c.pitch > 1 && c.pitch < 1 &&
-        c.roll > 1 && c.roll < 1
+        c.z > 1 && c.z < 1 //&&
+        //c.pitch > 1 && c.pitch < 1 &&
+        //c.roll > 1 && c.roll < 1
     )
         return true;
     return false;
@@ -134,11 +134,12 @@ int mqtt_periodic_callback(coord_t* coord){
         }
 
         //check if simulator has moved
-        if ( !coord_equal(last_coord,*coord, EPSILON) ){
+        if ( !coord_equal(last_coord,*coord, EPSILON) || last_coord.claw != coord->claw){
             last_coord = *coord; //publish movement
             publish_cordinate(last_coord);
         }
     }
+    
 
     //check subscription
     //take mutex
@@ -158,7 +159,7 @@ int mqtt_periodic_callback(coord_t* coord){
         if ( coord_is_valid(aux) ){
             //only apply if movement is significant
             if (!coord_equal(last_coord, aux, EPSILON)){
-                //printf("\nAPPLY");
+                printf("\nApply    :%s", incoming_message);
                 *coord = aux; //apply coordinates
                 last_coord = aux; //remember coordinates
                 ret_flag = 1; //notify update         
@@ -203,7 +204,7 @@ int subscribe_callback(void* context, char* topicName, int topicLen, MQTTClient_
     incoming_message[m->payloadlen] = '\0'; //terminate string
     incoming_flag = 1;
 
-    //printf("\nsubscribe:%s", incoming_message);
+    printf("\nsubscribe:%s", incoming_message);
     pthread_mutex_unlock(&incoming_mutex);
     //release mutex
 

@@ -19,6 +19,8 @@
  *  MA  02110-1301  USA
  */
 
+#define RVM2_SCALAR 170.0
+
 #define PROGRAM_VERSION "0.0.1"
 
 // sudo apt-get -y install libsdl2-dev libsdl2-ttf-dev
@@ -227,7 +229,7 @@ void tg_line(double x, double y, double z) {
     p.z = isnan(z) ? tg_last_pose.z : z;
     tg_last_pose = p;
 
-    fprintf(stderr, "# line {x:%.6g, y:%.6g, z:%.6g, v:%.6g, a:%.6g, tol:%.6g }\n", p.x, p.y, p.z, tg_speed, tg_accel, tg_blending);
+    //fprintf(stderr, "# line {x:%.6g, y:%.6g, z:%.6g, v:%.6g, a:%.6g, tol:%.6g }\n", p.x, p.y, p.z, tg_speed, tg_accel, tg_blending);
     tg_echk(trajgen_add_line(p, tg_speed, tg_accel));
   }
 
@@ -660,7 +662,8 @@ void cross(float th, float l) {
 
         glPushMatrix();
         glTranslatef (0, 0.0, 0.0);
-        glRotatef (bot->j[0].pos, 0.0, 1.0, 0.0);
+        //glRotatef (bot->j[0].pos, 0.0, 1.0, 0.0);
+        glRotatef (-bot->j[0].pos, 0.0, 1.0, 0.0);
         glTranslatef (0, 0.0, 0.0);
 
         glPushMatrix();
@@ -871,33 +874,38 @@ void cross(float th, float l) {
 
         glColor3ub( 25, 200, 25 );
 
-        text(15, 10, sdl_font, "AXIS:  POS:     VEL:");
+        text(15, 10+11*TTF_FontHeight(sdl_font), sdl_font, "AXIS:  POS:     VEL:");
+        
+        //int i;
+        //for (i = 0; i < 5; i++) {
+        //    text(15, 10+(i+12)*TTF_FontHeight(sdl_font), sdl_font, 
+        //      "%d: %8.2f %8.3f", i+1, bot->j[i].pos, bot->j[i].vel);
+        //}
+        text(15, 10+12*TTF_FontHeight(sdl_font), sdl_font, "%d: %8.2f %8.3f", 1, bot->j[0].pos, bot->j[0].vel);
+        text(15, 10+13*TTF_FontHeight(sdl_font), sdl_font, "%d: %8.2f %8.3f", 2, bot->j[1].pos, bot->j[1].vel);
+        text(15, 10+14*TTF_FontHeight(sdl_font), sdl_font, "%d: %8.2f %8.3f", 3, bot->j[2].pos, bot->j[2].vel);
+        text(15, 10+15*TTF_FontHeight(sdl_font), sdl_font, "%d: %8.2f %8.3f", 4, bot->j[3].pos-90.0, bot->j[3].vel);
+        text(15, 10+16*TTF_FontHeight(sdl_font), sdl_font, "%d: %8.2f %8.3f", 5, bot->j[4].pos, bot->j[4].vel);
 
-        int i;
-        for (i = 0; i < 5; i++) {
-            text(15, 10+(i+1)*TTF_FontHeight(sdl_font), sdl_font,
-                 "%d: %8.2f %8.3f", i+1, bot->j[i].pos, bot->j[i].vel);
-        }
-
-        text(15, 10+7*TTF_FontHeight(sdl_font), sdl_font, "x: %8.2f", bot->t[12]);
-        text(15, 10+8*TTF_FontHeight(sdl_font), sdl_font, "y: %8.2f", bot->t[13]);
-        text(15, 10+9*TTF_FontHeight(sdl_font), sdl_font, "z: %8.2f", bot->t[14]);
+        text(15, 10+2*TTF_FontHeight(sdl_font), sdl_font, "x: %8.2f", bot->t[14]*RVM2_SCALAR);
+        text(15, 10+3*TTF_FontHeight(sdl_font), sdl_font, "y: %8.2f", bot->t[12]*RVM2_SCALAR);
+        text(15, 10+4*TTF_FontHeight(sdl_font), sdl_font, "z: %8.2f", bot->t[13]*RVM2_SCALAR);
 
         double r, p, y;
 
-        pmMatRpyConvert(bot->t, &r, &p, &y);
+        pmMatRpyConvert(bot->t, &y, &r, &p);
 
-        text(15, 10+11*TTF_FontHeight(sdl_font), sdl_font, "a: %8.2f", rad2deg(r));
-        text(15, 10+12*TTF_FontHeight(sdl_font), sdl_font, "b: %8.2f", rad2deg(p));
-        text(15, 10+13*TTF_FontHeight(sdl_font), sdl_font, "c: %8.2f", rad2deg(y));
+        text(15, 10+6*TTF_FontHeight(sdl_font), sdl_font, "r: %8.2f", rad2deg(r));
+        text(15, 10+7*TTF_FontHeight(sdl_font), sdl_font, "p: %8.2f", rad2deg(p)-90.0);
+        text(15, 10+8*TTF_FontHeight(sdl_font), sdl_font, "y: %8.2f", rad2deg(y));
 
-        text(15, 10+15*TTF_FontHeight(sdl_font), sdl_font, "%s", bot->claw?"Open":"Closed");
+        text(15, 10+9*TTF_FontHeight(sdl_font), sdl_font, "%s", bot->claw?"Open":"Closed");
 
-        text(width - 370,10, sdl_font, "TOOL"); text_matrix(width - 320, 10, bot->t);
-
-        if (strlen(bot->msg)) {
-            text(15, height - TTF_FontHeight(sdl_font) * 1.5, sdl_font, bot->msg);
-        }
+        //text(width - 370,10, sdl_font, "TOOL"); text_matrix(width - 320, 10, bot->t);
+        //
+        //if (strlen(bot->msg)) {
+        //    text(15, height - TTF_FontHeight(sdl_font) * 1.5, sdl_font, bot->msg);
+        //}
 
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
@@ -1220,10 +1228,10 @@ coord_t bot2coord(bot_t *bot){
   double r=0, p=0, y=0;
   pmMatRpyConvert(bot->t, &y, &r, &p);
   coord_t coord = {
-    bot->t[12],
-    bot->t[13],
-    bot->t[14],
-    rad2deg(p),
+    bot->t[14]*RVM2_SCALAR,
+    bot->t[12]*RVM2_SCALAR,
+    bot->t[13]*RVM2_SCALAR,
+    rad2deg(p)+90.0,
     rad2deg(r),//bot_inv.j[4].pos
     bot->claw
   };
@@ -1234,13 +1242,13 @@ void coord2bot(bot_t *bot, coord_t coord)
 { 
   //convert coord to bot        
   bot_t bot_aux = *bot;
-  bot_aux.t[12]=coord.x;
-  bot_aux.t[13]=coord.y;
-  bot_aux.t[14]=coord.z;
+  bot_aux.t[14]=coord.x/RVM2_SCALAR;
+  bot_aux.t[12]=coord.y/RVM2_SCALAR;
+  bot_aux.t[13]=coord.z/RVM2_SCALAR;
 
   double r=0, p=0, y=0;
   pmMatRpyConvert(&bot_aux.t, &y, &r, &p);
-  p = rad2deg(p);
+  p = rad2deg(p)-90.0;
   r = rad2deg(r);
 
   // pitch
@@ -1267,20 +1275,20 @@ void bot_init(bot_t* bot){
     //bot->a2 = 2.5;
     //bot->a3 = 2.0;
     
-    bot->j[0].min = -120;
-    bot->j[0].max = 180;
+    bot->j[0].min = -150;
+    bot->j[0].max = 150;
     
     bot->j[1].min = -30;
     bot->j[1].max = 100;
     
-    bot->j[2].min = -100;
+    bot->j[2].min = -120;
     bot->j[2].max = 0;
     
-    bot->j[3].min = -15;
-    bot->j[3].max = 195;
+    bot->j[3].min = (-110+90);
+    bot->j[3].max = (+110+90);
     
-    bot->j[4].min = -360;
-    bot->j[4].max = 360;
+    bot->j[4].min = -180;
+    bot->j[4].max = 180;
     
     bot->j[0].pos = 0;
     bot->j[1].pos = 90;
@@ -1767,9 +1775,10 @@ int main(int argc, char** argv) {
         if ( mqtt_periodic_callback(&coord) ) 
         { //an update arrived from mqtt
 
-          bot_t bot_aux = bot_inv;
+          bot_t bot_aux;// = bot_inv;
+          bot_init(&bot_aux);
 
-          int try = 100;
+          int try = 1000;
           do{
             //try to convert multiple times until result is good
             coord2bot(&bot_aux, coord);
@@ -1779,10 +1788,10 @@ int main(int argc, char** argv) {
             update_model(&bot_fwd, &bot_inv, 1, 1);
             bot_aux = bot_inv;
 
-            if(try < 100)
-              printf("\nTRY: %d", try);
+            //if(try < 100)
+            //  printf("\nTRY: %d", try);
           }
-          while(  !coord_equal(coord, bot2coord(&bot_aux), EPSILON/10) 
+          while(  !coord_equal(coord, bot2coord(&bot_aux), EPSILON) 
                   && --try > 0 );
           if(try == 0) printf("\nError!");
           //TODO: enter error state ????
