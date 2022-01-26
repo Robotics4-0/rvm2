@@ -1545,7 +1545,7 @@ int main(int argc, char** argv) {
 	  werase(messagebar);
 	  wrefresh(messagebar);
 	  
-	  wprintw(menubar, "Mitsubishi Movemaster VM-M2 Simulator");
+	  wprintw(menubar, "Mitsubishi Movemaster RV-M2 Simulator");
 	  wprintw(messagebar, "Status: DISCONNECTED, OFFLINE");
 	}
 #endif
@@ -1695,7 +1695,7 @@ int main(int argc, char** argv) {
 	  height = sdl_displaymode.h;
 	}*/
       
-      sdl_window = SDL_CreateWindow("Mitsubishi Movemaster VM-M2 Simulator",
+      sdl_window = SDL_CreateWindow("Mitsubishi Movemaster RV-M2 Simulator",
 				    SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 				    width, height, sdl_flags);
       
