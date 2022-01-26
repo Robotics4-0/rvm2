@@ -38,6 +38,13 @@ bool coord_equal(coord_t c1, coord_t c2){
     return false;
 }*/
 
+void print_error(coord_t c1, coord_t c2){
+    printf("\nerror: %.1f, %.1f, %.1f, %.1f, %.1f",\
+              c1.x-c2.x, c1.y-c2.y, c1.z-c2.z,\
+              c1.pitch-c2.pitch, c1.roll-c2.roll);
+
+}
+
 bool coord_equal(coord_t c1, coord_t c2, float epsilon){
     if( fabs( c1.x-c2.x ) < epsilon &&
         fabs( c1.y-c2.y ) < epsilon &&
@@ -115,7 +122,7 @@ void mqtt_handler_close(){
  * @brief this function must be called on the infinite loop
  * @param c pointer to actual coordintes
  */
-int mqtt_periodic_callback(coord_t* coord){
+int mqtt_periodic_callback(coord_t* coord, bool allowPub){
     static int run_flag=0;
     static coord_t last_coord;
     static time_t last_time = 0;
@@ -123,7 +130,8 @@ int mqtt_periodic_callback(coord_t* coord){
     int ret_flag = 0;
 
     //check if min delta t has passed
-    if ( ((double)(now - last_time) / (double)CLOCKS_PER_SEC) >= (double)MIN_DELTA_T){
+    if ( ((double)(now - last_time) / (double)CLOCKS_PER_SEC) >= (double)MIN_DELTA_T \
+            && allowPub){
     
         last_time = now;
         

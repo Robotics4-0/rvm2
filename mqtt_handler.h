@@ -19,10 +19,10 @@ typedef struct {
 
 void mqtt_handler_init();
 void mqtt_handler_close();
-int  mqtt_periodic_callback(coord_t*);
+int  mqtt_periodic_callback(coord_t*, bool);
 bool coord_equal(coord_t, coord_t, float);
 
-
+void print_error(coord_t, coord_t);
 
 #endif //_MQTT_HANDLER_H_
 

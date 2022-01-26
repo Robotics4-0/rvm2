@@ -18,8 +18,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  *  MA  02110-1301  USA
  */
-
-#define RVM2_SCALAR 170.0
+#include "time.h"
+#define RVM2_SCALAR 150.0
 
 #define PROGRAM_VERSION "0.0.1"
 
@@ -108,6 +108,7 @@
 #endif
 
 volatile int done    = 0; // SIGINT or user exit requested
+int errorState = 0;
 
 #ifdef HAVE_HAL
 int do_hal = 0;
@@ -897,7 +898,7 @@ void cross(float th, float l) {
 
         text(15, 10+6*TTF_FontHeight(sdl_font), sdl_font, "r: %8.2f", rad2deg(r));
         text(15, 10+7*TTF_FontHeight(sdl_font), sdl_font, "p: %8.2f", rad2deg(p)-90.0);
-        text(15, 10+8*TTF_FontHeight(sdl_font), sdl_font, "y: %8.2f", rad2deg(y));
+        //text(15, 10+8*TTF_FontHeight(sdl_font), sdl_font, "y: %8.2f", rad2deg(y));
 
         text(15, 10+9*TTF_FontHeight(sdl_font), sdl_font, "%s", bot->claw?"Open":"Closed");
 
@@ -906,6 +907,10 @@ void cross(float th, float l) {
         //if (strlen(bot->msg)) {
         //    text(15, height - TTF_FontHeight(sdl_font) * 1.5, sdl_font, bot->msg);
         //}
+
+        if (errorState) {
+            text(15, height - TTF_FontHeight(sdl_font) * 1.5, sdl_font, "ErrorState");
+        }
 
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
@@ -1246,19 +1251,24 @@ void coord2bot(bot_t *bot, coord_t coord)
   bot_aux.t[12]=coord.y/RVM2_SCALAR;
   bot_aux.t[13]=coord.z/RVM2_SCALAR;
 
+ for(int i=0; i<10; i++)
+  {
   double r=0, p=0, y=0;
   pmMatRpyConvert(&bot_aux.t, &y, &r, &p);
   p = rad2deg(p)-90.0;
   r = rad2deg(r);
 
+ 
+    
   // pitch
   rotate_m_axyz(&bot_aux.t, coord.pitch-p, sin(deg2rad(bot_aux.j[0].pos)), 0, cos(deg2rad(bot_aux.j[0].pos)));
   // roll
   rotate_m_axyz(&bot_aux.t, coord.roll-r, 0, 1, 0);
   
-  //kins_inv(&bot_aux);
-  //bot_aux.j[4].pos=r; //TODO: check if roll is global
+  kins_inv(&bot_aux);
+  //bot_aux.j[4].pos=r; 
   //kins_fwd(&bot_aux);
+  }
 
   bot_aux.claw=coord.claw;
   //return results
@@ -1348,13 +1358,16 @@ int main(int argc, char** argv) {
         int do_help = 0;
         int do_version = 0;
         int verbose = 0;
+        int rw_mode =0;
 
         int i = 0;
         while (++i < argc) {
 #define OPTION_SET(longopt,shortopt) (strcmp(argv[i], longopt)==0 || strcmp(argv[i], shortopt)==0)
 #define OPTION_VALUE ((i+1 < argc)?(argv[i+1]):(NULL))
 #define OPTION_VALUE_PROCESSED (i++)
-	  if (OPTION_SET("--help", "-h")) {
+	  if (OPTION_SET("--rw", "-w")) {
+            rw_mode = 1;
+	  } else if (OPTION_SET("--help", "-h")) {
             do_help = 1;
 	  } else if (OPTION_SET("--version", "-v")) {
             do_version = 1;
@@ -1408,6 +1421,7 @@ int main(int argc, char** argv) {
         if (do_help) {
             fprintf(stdout, "Usage: %s [OPTIONS]\n\n"
                     " Where [OPTIONS] are zero or more of the following:\n\n"
+                    "    [-w|--rw]                Read Write mode\n"
 #ifdef HAVE_SDL
                     "    [-s|--sdl]               SDL window mode\n"
                     "    [-f|--fullscreen]        Fullscreen mode\n"
@@ -1644,7 +1658,7 @@ int main(int argc, char** argv) {
       
 #ifdef HAVE_JOYSTICK
       if (SDL_NumJoysticks() < 1) {
-	printf( "Warning: No joysticks connected!\n" );
+	//printf( "Warning: No joysticks connected!\n" );
       } else {
 	joy = SDL_JoystickOpen( 0 );
 	if (joy == NULL) {
@@ -1764,20 +1778,22 @@ int main(int argc, char** argv) {
     while (!tg_tg.is_done) tg_echk(trajgen_tick());
 #endif
 
+    if (rw_mode)
+      printf("Read Write mode!");
+    else
+      printf("Read only mode!");
+
     // 
     mqtt_handler_init();
-
-
+time_t last_time = 0;
     //Infinite loop
     while (!done) {
 
         coord_t coord = bot2coord(&bot_inv);
+        bot_t bot_aux = bot_inv;
 
-        if ( mqtt_periodic_callback(&coord) ) 
+        if ( mqtt_periodic_callback(&coord, rw_mode))
         { //an update arrived from mqtt
-
-          bot_t bot_aux;// = bot_inv;
-          bot_init(&bot_aux);
 
           int try = 100;
           do{
@@ -1788,14 +1804,15 @@ int main(int argc, char** argv) {
             bot_inv = bot_aux;
             update_model(&bot_fwd, &bot_inv, 1, 1);
             bot_aux = bot_inv;
-
-            //if(try < 100)
-            //  printf("\nTRY: %d", try);
           }
           while(  !coord_equal(coord, bot2coord(&bot_aux), EPSILON) 
                   && --try > 0 );
-          if(try == 0) printf("\nError!");
-          //TODO: enter error state ????
+          //if(try == 0) {
+          //  errorState  = 1;
+          //  printf("\nError!");
+          //}
+          //else 
+          //  errorState  = 0;
 
         }
 
@@ -1827,40 +1844,42 @@ int main(int argc, char** argv) {
       cnt *= 2;
     }
     
-    if (keys[SDL_SCANCODE_Q]) { jog_joint(&bot_fwd, 0,  cnt); }
-    if (keys[SDL_SCANCODE_W]) { jog_joint(&bot_fwd, 1,  cnt); }
-    if (keys[SDL_SCANCODE_E]) { jog_joint(&bot_fwd, 2,  cnt); }
-    if (keys[SDL_SCANCODE_R]) { jog_joint(&bot_fwd, 3,  cnt); }
-    if (keys[SDL_SCANCODE_T]) { jog_joint(&bot_fwd, 4,  cnt); }
-    
-    if (keys[SDL_SCANCODE_A]) { jog_joint(&bot_fwd, 0, -cnt); }
-    if (keys[SDL_SCANCODE_S]) { jog_joint(&bot_fwd, 1, -cnt); }
-    if (keys[SDL_SCANCODE_D]) { jog_joint(&bot_fwd, 2, -cnt); }
-    if (keys[SDL_SCANCODE_F]) { jog_joint(&bot_fwd, 3, -cnt); }
-    if (keys[SDL_SCANCODE_G]) { jog_joint(&bot_fwd, 4, -cnt); }
+    if (rw_mode){
+      if (keys[SDL_SCANCODE_Q]) { jog_joint(&bot_fwd, 0,  cnt); }
+      if (keys[SDL_SCANCODE_W]) { jog_joint(&bot_fwd, 1,  cnt); }
+      if (keys[SDL_SCANCODE_E]) { jog_joint(&bot_fwd, 2,  cnt); }
+      if (keys[SDL_SCANCODE_R]) { jog_joint(&bot_fwd, 3,  cnt); }
+      if (keys[SDL_SCANCODE_T]) { jog_joint(&bot_fwd, 4,  cnt); }
+      
+      if (keys[SDL_SCANCODE_A]) { jog_joint(&bot_fwd, 0, -cnt); }
+      if (keys[SDL_SCANCODE_S]) { jog_joint(&bot_fwd, 1, -cnt); }
+      if (keys[SDL_SCANCODE_D]) { jog_joint(&bot_fwd, 2, -cnt); }
+      if (keys[SDL_SCANCODE_F]) { jog_joint(&bot_fwd, 3, -cnt); }
+      if (keys[SDL_SCANCODE_G]) { jog_joint(&bot_fwd, 4, -cnt); }
 
-    if (keys[SDL_SCANCODE_O]) { bot_fwd.claw = true; }
-    if (keys[SDL_SCANCODE_L]) { bot_fwd.claw = false; }
+      if (keys[SDL_SCANCODE_O]) { bot_fwd.claw = true; }
+      if (keys[SDL_SCANCODE_L]) { bot_fwd.claw = false; }
 
-    if (!keys[SDL_SCANCODE_LSHIFT] && !keys[SDL_SCANCODE_RSHIFT]) {
-      if (keys[SDL_SCANCODE_LEFT])     { move_tool(&bot_inv, 0, -d); }
-      if (keys[SDL_SCANCODE_RIGHT])    { move_tool(&bot_inv, 0,  d); }
-      if (keys[SDL_SCANCODE_I])        { move_tool(&bot_inv, 1,  d); }
-      if (keys[SDL_SCANCODE_K])        { move_tool(&bot_inv, 1, -d); }
-      if (keys[SDL_SCANCODE_UP])       { move_tool(&bot_inv, 2,  d); }
-      if (keys[SDL_SCANCODE_DOWN])     { move_tool(&bot_inv, 2, -d); }
-    } else {
-      if (keys[SDL_SCANCODE_UP])  {
-        rotate_tool(&bot_inv, -cnt, sin(deg2rad(bot_inv.j[0].pos)), 0, cos(deg2rad(bot_inv.j[0].pos)));
-      }
-      if (keys[SDL_SCANCODE_DOWN]) {
-        rotate_tool(&bot_inv,  cnt, sin(deg2rad(bot_inv.j[0].pos)), 0, cos(deg2rad(bot_inv.j[0].pos)));
-      }
-      if (keys[SDL_SCANCODE_LEFT])  {
-        rotate_tool(&bot_inv, -cnt, 0, 1, 0);
-      }
-      if (keys[SDL_SCANCODE_RIGHT]) {
-        rotate_tool(&bot_inv,  cnt, 0, 1, 0);
+      if (!keys[SDL_SCANCODE_LSHIFT] && !keys[SDL_SCANCODE_RSHIFT]) {
+        if (keys[SDL_SCANCODE_LEFT])     { move_tool(&bot_inv, 0, -d); }
+        if (keys[SDL_SCANCODE_RIGHT])    { move_tool(&bot_inv, 0,  d); }
+        if (keys[SDL_SCANCODE_I])        { move_tool(&bot_inv, 1,  d); }
+        if (keys[SDL_SCANCODE_K])        { move_tool(&bot_inv, 1, -d); }
+        if (keys[SDL_SCANCODE_UP])       { move_tool(&bot_inv, 2,  d); }
+        if (keys[SDL_SCANCODE_DOWN])     { move_tool(&bot_inv, 2, -d); }
+      } else {
+        if (keys[SDL_SCANCODE_UP])  {
+          rotate_tool(&bot_inv, -cnt, sin(deg2rad(bot_inv.j[0].pos)), 0, cos(deg2rad(bot_inv.j[0].pos)));
+        }
+        if (keys[SDL_SCANCODE_DOWN]) {
+          rotate_tool(&bot_inv,  cnt, sin(deg2rad(bot_inv.j[0].pos)), 0, cos(deg2rad(bot_inv.j[0].pos)));
+        }
+        if (keys[SDL_SCANCODE_LEFT])  {
+          rotate_tool(&bot_inv, -cnt, 0, 1, 0);
+        }
+        if (keys[SDL_SCANCODE_RIGHT]) {
+          rotate_tool(&bot_inv,  cnt, 0, 1, 0);
+        }
       }
     }
 	  
