@@ -14,7 +14,7 @@
 
 typedef struct {
     float x,y,z,pitch,roll;
-    bool claw;
+    bool grip;
 } coord_t;
 
 void mqtt_handler_init();

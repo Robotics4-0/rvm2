@@ -32,7 +32,7 @@ bool coord_equal(coord_t c1, coord_t c2){
         (int)(c1.z*10)==(int)(c2.z*10) &&
         (int)(c1.pitch*10)==(int)(c2.pitch*10) &&
         (int)(c1.roll*10)==(int)(c2.roll*10) &&
-        c1.claw==c2.claw
+        c1.grip==c2.grip
     )
         return true;
     return false;
@@ -50,8 +50,8 @@ bool coord_equal(coord_t c1, coord_t c2, float epsilon){
         fabs( c1.y-c2.y ) < epsilon &&
         fabs( c1.z-c2.z ) < epsilon &&
         fabs( c1.pitch-c2.pitch ) < epsilon &&
-        fabs( c1.roll-c2.roll ) < epsilon //&&
-        //c1.claw==c2.claw
+        fabs( c1.roll-c2.roll ) < epsilon &&
+        c1.grip==c2.grip
     )
         return true;
     return false;
@@ -142,7 +142,7 @@ int mqtt_periodic_callback(coord_t* coord, bool allowPub){
         }
 
         //check if simulator has moved
-        if ( !coord_equal(last_coord,*coord, EPSILON) || last_coord.claw != coord->claw){
+        if ( !coord_equal(last_coord,*coord, EPSILON) ){//|| last_coord.grip != coord->grip){
             last_coord = *coord; //publish movement
             publish_cordinate(last_coord);
         }
@@ -157,16 +157,16 @@ int mqtt_periodic_callback(coord_t* coord, bool allowPub){
         incoming_flag = 0;
 
         coord_t aux;
-        char claw = 0;
+        char grip = 0;
         //decode the message
         sscanf(incoming_message, "%f, %f, %f, %f, %f, %c",
-                &aux.x, &aux.y, &aux.z, &aux.pitch, &aux.roll, &claw);
-        aux.claw = (claw=='C') ? 0 : 1;
+                &aux.x, &aux.y, &aux.z, &aux.pitch, &aux.roll, &grip);
+        aux.grip = (grip=='C') ? 0 : 1;
 
         //check if message is valid
         if ( coord_is_valid(aux) ){
             //only apply if movement is significant
-            if (!coord_equal(last_coord, aux, EPSILON)){
+            if (!coord_equal(last_coord, aux, EPSILON) ){//|| last_coord.grip != coord->grip){
                 printf("\nApply    :%s", incoming_message);
                 *coord = aux; //apply coordinates
                 last_coord = aux; //remember coordinates
@@ -188,7 +188,7 @@ void publish_cordinate(coord_t c){
     char message[50];
     sprintf(&message,
             "%+.1f, %+.1f, %+.1f, %+.1f, %+.1f, %c",
-            c.x, c.y, c.z, c.pitch, c.roll, c.claw?'O':'C');
+            c.x, c.y, c.z, c.pitch, c.roll, c.grip?'O':'C');
 
     printf("\npublish:  %s", message);
     // Publish message

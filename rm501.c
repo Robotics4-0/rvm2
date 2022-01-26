@@ -256,7 +256,7 @@ typedef struct {
 #ifdef PROJ3
     int proj3counter;
 #endif
-    bool claw;
+    bool grip;
 
 } bot_t;
 
@@ -798,7 +798,10 @@ void cross(float th, float l) {
         cylinder(wire, 0.13, 0.13, 0.5, 22, 1);
         glPopMatrix();
 
-        glColor3f(0.15, 0.15, 0.15);
+        if(bot->grip)
+          glColor3f(0.15, 1, 0.15);
+        else
+          glColor3f(1, 0.15, 0.15);
 
         glPushMatrix();
         glTranslatef (0.0, -0.7, 0.0);
@@ -900,7 +903,7 @@ void cross(float th, float l) {
         text(15, 10+7*TTF_FontHeight(sdl_font), sdl_font, "p: %8.2f", rad2deg(p)-90.0);
         //text(15, 10+8*TTF_FontHeight(sdl_font), sdl_font, "y: %8.2f", rad2deg(y));
 
-        text(15, 10+9*TTF_FontHeight(sdl_font), sdl_font, "%s", bot->claw?"Open":"Closed");
+        text(15, 10+9*TTF_FontHeight(sdl_font), sdl_font, "%s", bot->grip?"Open":"Closed");
 
         //text(width - 370,10, sdl_font, "TOOL"); text_matrix(width - 320, 10, bot->t);
         //
@@ -1095,7 +1098,7 @@ void cross(float th, float l) {
             kins_fwd(bot_fwd);
             memcpy(bot_inv, bot_fwd, sizeof(bot_t));
         }
-        bot_inv->claw=bot_fwd->claw;
+        bot_inv->grip=bot_fwd->grip;
     }
 
 #ifdef HAVE_MOSQUITTO
@@ -1238,7 +1241,7 @@ coord_t bot2coord(bot_t *bot){
     bot->t[13]*RVM2_SCALAR,
     rad2deg(p)+90.0,
     rad2deg(r),//bot_inv.j[4].pos
-    bot->claw
+    bot->grip
   };
   return coord;
 }
@@ -1270,7 +1273,7 @@ void coord2bot(bot_t *bot, coord_t coord)
   //kins_fwd(&bot_aux);
   }
 
-  bot_aux.claw=coord.claw;
+  bot_aux.grip=coord.grip;
   //return results
   *bot = bot_aux;
 
@@ -1307,7 +1310,7 @@ void bot_init(bot_t* bot){
     bot->j[3].pos = 0;
     bot->j[4].pos = 0;
 
-    bot->claw = true;
+    bot->grip = true;
 }
 
 int main(int argc, char** argv) {
@@ -1857,8 +1860,8 @@ time_t last_time = 0;
       if (keys[SDL_SCANCODE_F]) { jog_joint(&bot_fwd, 3, -cnt); }
       if (keys[SDL_SCANCODE_G]) { jog_joint(&bot_fwd, 4, -cnt); }
 
-      if (keys[SDL_SCANCODE_O]) { bot_fwd.claw = true; }
-      if (keys[SDL_SCANCODE_L]) { bot_fwd.claw = false; }
+      if (keys[SDL_SCANCODE_O]) { bot_fwd.grip = true; }
+      if (keys[SDL_SCANCODE_L]) { bot_fwd.grip = false; }
 
       if (!keys[SDL_SCANCODE_LSHIFT] && !keys[SDL_SCANCODE_RSHIFT]) {
         if (keys[SDL_SCANCODE_LEFT])     { move_tool(&bot_inv, 0, -d); }
