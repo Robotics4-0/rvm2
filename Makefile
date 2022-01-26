@@ -34,35 +34,35 @@ SUBDIRS = paho-mqtt-c/src
 
 
 
-all: rm501
+all: rvm2
 
 
 %.o: %.c
 	$(CC) -o $@ -c $(CFLAGS) $+
 
 
-rm501: rm501.o trajgen.o mqtt_handler.o
+rvm2: rvm2.o trajgen.o mqtt_handler.o
 	$(CC) -o $@ $+ $(LDFLAGS) $(LDLIBS)
 
-rm501.1: rm501
+rvm2.1: rvm2
 	help2man -N ./$+ > $@
 
-install: rm501
-	strip rm501
+install: rvm2
+	strip rvm2
 	mkdir -p $(INSTALL_PREFIX)$(PREFIX)/bin
-	install -m 0755 rm501         $(INSTALL_PREFIX)$(PREFIX)/bin
+	install -m 0755 rvm2         $(INSTALL_PREFIX)$(PREFIX)/bin
 	mkdir -p $(INSTALL_PREFIX)$(PREFIX)/share/icons/hicolor/512x512/apps
-	install -m 0664 rm501.png     $(INSTALL_PREFIX)$(PREFIX)/share/icons/hicolor/512x512/apps
+	install -m 0664 rvm2.png     $(INSTALL_PREFIX)$(PREFIX)/share/icons/hicolor/512x512/apps
 	mkdir -p $(INSTALL_PREFIX)$(PREFIX)/share/applications
-	install -m 0664 rm501.desktop $(INSTALL_PREFIX)$(PREFIX)/share/applications
+	install -m 0664 rvm2.desktop $(INSTALL_PREFIX)$(PREFIX)/share/applications
 
 uninstall:
-	rm $(INSTALL_PREFIX)$(PREFIX)/bin/rm501
-	rm $(INSTALL_PREFIX)$(PREFIX)/share/icons/hicolor/512x512/apps/rm501.png
-	rm $(INSTALL_PREFIX)$(PREFIX)/share/applications/rm501.desktop
+	rm $(INSTALL_PREFIX)$(PREFIX)/bin/rvm2
+	rm $(INSTALL_PREFIX)$(PREFIX)/share/icons/hicolor/512x512/apps/rvm2.png
+	rm $(INSTALL_PREFIX)$(PREFIX)/share/applications/rvm2.desktop
 
 clean:
-	rm -f *.o rm501
+	rm -f *.o rvm2
 
 pull:
 	git pull origin master --rebase
