@@ -1786,9 +1786,9 @@ int main(int argc, char** argv) {
     else
       printf("Read only mode!");
 
-    // 
+    
     mqtt_handler_init();
-time_t last_time = 0;
+
     //Infinite loop
     while (!done) {
 
@@ -1810,12 +1810,6 @@ time_t last_time = 0;
           }
           while(  !coord_equal(coord, bot2coord(&bot_aux), EPSILON) 
                   && --try > 0 );
-          //if(try == 0) {
-          //  errorState  = 1;
-          //  printf("\nError!");
-          //}
-          //else 
-          //  errorState  = 0;
 
         }
 

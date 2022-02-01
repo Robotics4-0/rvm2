@@ -24,19 +24,7 @@ pthread_mutex_t incoming_mutex;
 //forward declaration
 void publish_cordinate(coord_t);
 int subscribe_callback(void* , char*, int, MQTTClient_message*);
-/*
-bool coord_equal(coord_t c1, coord_t c2){
-    
-    if( (int)(c1.x*10)==(int)(c2.x*10) &&
-        (int)(c1.y*10)==(int)(c2.y*10) &&
-        (int)(c1.z*10)==(int)(c2.z*10) &&
-        (int)(c1.pitch*10)==(int)(c2.pitch*10) &&
-        (int)(c1.roll*10)==(int)(c2.roll*10) &&
-        c1.grip==c2.grip
-    )
-        return true;
-    return false;
-}*/
+
 
 void print_error(coord_t c1, coord_t c2){
     printf("\nerror: %.1f, %.1f, %.1f, %.1f, %.1f",\
@@ -45,6 +33,13 @@ void print_error(coord_t c1, coord_t c2){
 
 }
 
+/**
+ * @brief verifies if two coordinates are equal
+ * @param c1 first coordinate
+ * @param c2 second coordinate
+ * @param epsilon allowable error
+ * @retval result (true or false)
+ */
 bool coord_equal(coord_t c1, coord_t c2, float epsilon){
     if( fabs( c1.x-c2.x ) < epsilon &&
         fabs( c1.y-c2.y ) < epsilon &&
@@ -52,18 +47,6 @@ bool coord_equal(coord_t c1, coord_t c2, float epsilon){
         fabs( c1.pitch-c2.pitch ) < epsilon &&
         fabs( c1.roll-c2.roll ) < epsilon &&
         c1.grip==c2.grip
-    )
-        return true;
-    return false;
-}
-
-bool coord_is_valid(coord_t c){
-    return true; //TODO: update values
-    if( c.x > 1 && c.x < 1 &&
-        c.y > 1 && c.y < 1 &&
-        c.z > 1 && c.z < 1 //&&
-        //c.pitch > 1 && c.pitch < 1 &&
-        //c.roll > 1 && c.roll < 1
     )
         return true;
     return false;
@@ -102,7 +85,6 @@ void mqtt_handler_init(){
 	}
 
     rc = MQTTClient_subscribe(client, TOPIC, QOS);
-	//assert("Good rc from subscribe", rc == MQTTCLIENT_SUCCESS, "rc was %d", rc);
 }
 
 /**
@@ -120,7 +102,9 @@ void mqtt_handler_close(){
 
 /**
  * @brief this function must be called on the infinite loop
- * @param c pointer to actual coordintes
+ * @param coord pointer to actual coordintes
+ * @param allowPub flag to allow publishing
+ * @retval flag if an update was made
  */
 int mqtt_periodic_callback(coord_t* coord, bool allowPub){
     static int run_flag=0;
@@ -142,7 +126,7 @@ int mqtt_periodic_callback(coord_t* coord, bool allowPub){
         }
 
         //check if simulator has moved
-        if ( !coord_equal(last_coord,*coord, EPSILON) ){//|| last_coord.grip != coord->grip){
+        if ( !coord_equal(last_coord,*coord, EPSILON) ){
             last_coord = *coord; //publish movement
             publish_cordinate(last_coord);
         }
@@ -163,16 +147,13 @@ int mqtt_periodic_callback(coord_t* coord, bool allowPub){
                 &aux.x, &aux.y, &aux.z, &aux.pitch, &aux.roll, &grip);
         aux.grip = (grip=='C') ? 0 : 1;
 
-        //check if message is valid
-        if ( coord_is_valid(aux) ){
-            //only apply if movement is significant
-            if (!coord_equal(last_coord, aux, EPSILON) ){//|| last_coord.grip != coord->grip){
-                printf("\nApply    :%s", incoming_message);
-                *coord = aux; //apply coordinates
-                last_coord = aux; //remember coordinates
-                ret_flag = 1; //notify update         
+        //only apply if movement is significant
+        if (!coord_equal(last_coord, aux, EPSILON) ){
+            printf("\nApply    :%s", incoming_message);
+            *coord = aux; //apply coordinates
+            last_coord = aux; //remember coordinates
+            ret_flag = 1; //notify update         
 
-            }
         }
     }
 
@@ -180,7 +161,6 @@ int mqtt_periodic_callback(coord_t* coord, bool allowPub){
     pthread_mutex_unlock(&incoming_mutex);
 
     return ret_flag;
-
     
 }
 
