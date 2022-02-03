@@ -109,7 +109,29 @@ void mqtt_handler_close(){
 int mqtt_periodic_callback(coord_t* coord, bool allowPub){
     static int run_flag=0;
     static coord_t last_coord;
+    static time_t last_time = 0;
+    time_t now = clock();
     int ret_flag = 0;
+
+    //check if min delta t has passed
+    if ( ((double)(now - last_time) / (double)CLOCKS_PER_SEC) >= (double)MIN_DELTA_T \
+            && allowPub){
+    
+        last_time = now;
+        
+        //if this is the first time
+        if (run_flag == 0){ 
+            run_flag = 1;
+            last_coord = *coord; //this will prevent publish
+        }
+
+        //check if simulator has moved
+        if ( !coord_equal(last_coord,*coord, EPSILON) ){
+            last_coord = *coord; //publish movement
+            publish_cordinate(last_coord);
+        }
+    }
+    
 
     //check subscription
     //take mutex
@@ -131,12 +153,15 @@ int mqtt_periodic_callback(coord_t* coord, bool allowPub){
             *coord = aux; //apply coordinates
             last_coord = aux; //remember coordinates
             ret_flag = 1; //notify update         
+
         }
     }
+
     //release mutex
     pthread_mutex_unlock(&incoming_mutex);
 
     return ret_flag;
+    
 }
 
 void publish_cordinate(coord_t c){
