@@ -1289,20 +1289,20 @@ void bot_init(bot_t* bot){
     //bot->a2 = 2.5;
     //bot->a3 = 2.0;
     
-    bot->j[0].min = -150;
-    bot->j[0].max = 150;
+    bot->j[0].min = -160;
+    bot->j[0].max = 160;
     
-    bot->j[1].min = -30;
-    bot->j[1].max = 100;
+    bot->j[1].min = -40;
+    bot->j[1].max = 110;
     
-    bot->j[2].min = -120;
-    bot->j[2].max = 0;
+    bot->j[2].min = -200;
+    bot->j[2].max = 10;
     
-    bot->j[3].min = (-110+90);
-    bot->j[3].max = (+110+90);
+    bot->j[3].min = (-120+90);
+    bot->j[3].max = (+120+90);
     
-    bot->j[4].min = -180;
-    bot->j[4].max = 180;
+    bot->j[4].min = -190;
+    bot->j[4].max = 190;
     
     bot->j[0].pos = 0;
     bot->j[1].pos = 90;

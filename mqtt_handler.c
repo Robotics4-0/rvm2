@@ -3,6 +3,7 @@
 #include "string.h"
 #include "time.h"
 #include "stdbool.h"
+#include <unistd.h>
 #include <assert.h>
 #include <pthread.h>
 
@@ -53,6 +54,24 @@ bool coord_equal(coord_t c1, coord_t c2, float epsilon){
 }
 
 /**
+ * @brief Handle lost connection
+ */
+void connection_lost_callback(){
+    printf("\nConnectin lost");
+    while(1)
+    {
+        sleep(5);
+        printf("\nTrying to reconnect");
+        if (MQTTClient_connect(client, &conn_opts) == MQTTCLIENT_SUCCESS)
+        {
+            printf("\nConnection re-established");
+            MQTTClient_subscribe(client, TOPIC, QOS);
+            break;
+        }
+    }
+}
+
+/**
  * @brief Initialize the handler
  */
 void mqtt_handler_init(){
@@ -70,7 +89,7 @@ void mqtt_handler_init(){
     conn_opts.keepAliveInterval = 20;
     conn_opts.cleansession = 1;
 
-    rc = MQTTClient_setCallbacks(client, NULL, NULL, subscribe_callback, NULL);
+    rc = MQTTClient_setCallbacks(client, NULL, connection_lost_callback, subscribe_callback, NULL);
 
     if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
     {
